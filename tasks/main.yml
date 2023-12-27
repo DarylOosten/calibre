@@ -1,2 +1,51 @@
 ---
-# tasks file for ansible-role-skeleton/
+- name: Install Calibre web
+  become: true
+  tags: install
+  block:
+
+    - name: Add media group
+      ansible.builtin.group:
+        name: media
+        gid: "{{ media_gid }}"
+        state: present
+
+    - name: Add calibreweb user
+      ansible.builtin.user:
+        name: calibreweb
+        uid: "{{ calibreweb_uid }}"
+        group: media
+
+    - name: Create calibreweb config directory
+      ansible.builtin.file:
+        path: /home/calibreweb/config
+        state: directory
+        mode: "770"
+        owner: calibreweb
+        group: media
+
+    - name: Create calibreweb_media volume
+      docker_volume:
+        driver: "local"
+        driver_options:
+          type: nfs
+          o: "addr={{ nas }},nolock,soft,rw"
+          device: "{{ calibreweb_media_nfs }}"
+        volume_name: calibreweb_media
+
+    - name: Create calibreweb container
+      community.docker.docker_container:
+        name: calibre-web
+        image: lscr.io/linuxserver/calibre-web:latest
+        pull: true
+        restart_policy: unless-stopped
+        volumes:
+          - "/home/calibreweb/config:/config"
+          - "calibreweb_media:/books"
+        networks:
+          - name: proxy_net
+        env:
+          TZ: Asia/Bangkok
+          PUID: "{{ calibreweb_uid }}"
+          PGID: "{{ media_gid }}"
+          DOCKER_MODS: linuxserver/mods:universal-calibre
