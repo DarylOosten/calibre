@@ -32,7 +32,7 @@
 
     - name: Create calibre books directory
       ansible.builtin.file:
-        path: /home/calibre/books
+        path: /home/calibre/library
         state: directory
         mode: "770"
         owner: calibre
@@ -50,6 +50,7 @@
         restart_policy: unless-stopped
         volumes:
           - /home/calibre/app:/config
+          - /home/calibre/library:/library
         networks:
           - name: proxy_net
         env:
@@ -65,7 +66,7 @@
         restart_policy: unless-stopped
         volumes:
           - /home/calibre/web:/config
-          - /home/calibre/books:/books
+          - /home/calibre/library:/library
         networks:
           - name: proxy_net
         env:
