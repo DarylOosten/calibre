@@ -1,51 +1,75 @@
 ---
-- name: Install Calibre web
+- name: Install Calibre
   become: true
   tags: install
   block:
 
-    - name: Add media group
+    - name: Add calibre group
       ansible.builtin.group:
-        name: media
-        gid: "{{ media_gid }}"
+        name: calibre
         state: present
 
-    - name: Add calibreweb user
+    - name: Add calibre user
       ansible.builtin.user:
-        name: calibreweb
-        uid: "{{ calibreweb_uid }}"
-        group: media
+        name: calibre
+        group: calibre
 
-    - name: Create calibreweb config directory
+    - name: Create calibre app directory
       ansible.builtin.file:
-        path: /home/calibreweb/config
+        path: /home/calibre/app
         state: directory
         mode: "770"
-        owner: calibreweb
-        group: media
+        owner: calibre
+        group: calibre
 
-    - name: Create calibreweb_media volume
-      docker_volume:
-        driver: "local"
-        driver_options:
-          type: nfs
-          o: "addr={{ nas }},nolock,soft,rw"
-          device: "{{ calibreweb_media_nfs }}"
-        volume_name: calibreweb_media
+    - name: Create calibre web directory
+      ansible.builtin.file:
+        path: /home/calibre/web
+        state: directory
+        mode: "770"
+        owner: calibre
+        group: calibre
 
-    - name: Create calibreweb container
+    - name: Create calibre books directory
+      ansible.builtin.file:
+        path: /home/calibre/books
+        state: directory
+        mode: "770"
+        owner: calibre
+        group: calibre
+
+    - name: Instantiate passwd database
+      getent:
+        database: passwd
+
+    - name: Create calibre container
+      community.docker.docker_container:
+        name: calibre
+        image: lscr.io/linuxserver/calibre:latest
+        pull: true
+        restart_policy: unless-stopped
+        volumes:
+          - /home/calibre/app:/config
+        networks:
+          - name: proxy_net
+        env:
+          TZ: Asia/Bangkok
+          PUID: "{{ getent_passwd['calibre'].1 }}"
+          PGID: "{{ getent_passwd['calibre'].2 }}"
+
+    - name: Create calibre-web container
       community.docker.docker_container:
         name: calibre-web
         image: lscr.io/linuxserver/calibre-web:latest
         pull: true
         restart_policy: unless-stopped
         volumes:
-          - "/home/calibreweb/config:/config"
-          - "calibreweb_media:/books"
+          - /home/calibre/web:/config
+          - /home/calibre/books:/books
         networks:
           - name: proxy_net
         env:
           TZ: Asia/Bangkok
-          PUID: "{{ calibreweb_uid }}"
-          PGID: "{{ media_gid }}"
+          PUID: "{{ getent_passwd['calibre'].1 }}"
+          PGID: "{{ getent_passwd['calibre'].2 }}"
           DOCKER_MODS: linuxserver/mods:universal-calibre
