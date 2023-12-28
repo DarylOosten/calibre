@@ -30,11 +30,19 @@
         owner: calibre
         group: calibre
 
-    - name: Create calibre books directory
+    - name: Create calibre library directory
       ansible.builtin.file:
         path: /home/calibre/library
         state: directory
         mode: "770"
+        owner: calibre
+        group: calibre
+
+    - name: Create calibre upload directory
+      ansible.builtin.file:
+        path: /home/calibre/upload
+        state: directory
+        mode: "777"
         owner: calibre
         group: calibre
 
@@ -51,6 +59,7 @@
         volumes:
           - /home/calibre/app:/config
           - /home/calibre/library:/library
+          - /home/calibre/upload:/upload
         networks:
           - name: proxy_net
         env:
