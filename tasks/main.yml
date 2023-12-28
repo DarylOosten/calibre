@@ -34,7 +34,10 @@
       ansible.builtin.copy:
         src: metadata.db
         dest: /home/calibre/books/metadata.db
+        owner: calibre
+        group: calibre
         force: false
+        mode: u=rw,g=r,o=
 
     - name: Instantiate passwd database
       getent:
