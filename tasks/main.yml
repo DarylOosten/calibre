@@ -14,58 +14,31 @@
         name: calibre
         group: calibre
 
-    - name: Create calibre app directory
+    - name: Create calibre config directory
       ansible.builtin.file:
-        path: /home/calibre/app
+        path: /home/calibre/config
         state: directory
         mode: "770"
         owner: calibre
         group: calibre
 
-    - name: Create calibre web directory
+    - name: Create calibre books directory
       ansible.builtin.file:
-        path: /home/calibre/web
+        path: /home/calibre/books
         state: directory
         mode: "770"
         owner: calibre
         group: calibre
 
-    - name: Create calibre library directory
-      ansible.builtin.file:
-        path: /home/calibre/library
-        state: directory
-        mode: "770"
-        owner: calibre
-        group: calibre
-
-    - name: Create calibre upload directory
-      ansible.builtin.file:
-        path: /home/calibre/upload
-        state: directory
-        mode: "777"
-        owner: calibre
-        group: calibre
+    - name: Copy blank database
+      ansible.builtin.copy:
+        src: metadata.db
+        dest: /home/calibre/books/metadata.db
+        force: false
 
     - name: Instantiate passwd database
       getent:
         database: passwd
-
-    - name: Create calibre container
-      community.docker.docker_container:
-        name: calibre
-        image: lscr.io/linuxserver/calibre:latest
-        pull: true
-        restart_policy: unless-stopped
-        volumes:
-          - /home/calibre/app:/config
-          - /home/calibre/library:/library
-          - /home/calibre/upload:/upload
-        networks:
-          - name: proxy_net
-        env:
-          TZ: Asia/Bangkok
-          PUID: "{{ getent_passwd['calibre'].1 }}"
-          PGID: "{{ getent_passwd['calibre'].2 }}"
 
     - name: Create calibre-web container
       community.docker.docker_container:
@@ -74,8 +47,8 @@
         pull: true
         restart_policy: unless-stopped
         volumes:
-          - /home/calibre/web:/config
-          - /home/calibre/library:/library
+          - /home/calibre/config:/config
+          - /home/calibre/books:/books
         networks:
           - name: proxy_net
         env:
